@@ -203,7 +203,7 @@ function applyHeroPhoto(cityName, lat, lon) {
   }
 
   if (match) {
-    el.bgPhoto.style.backgroundImage = `url("${match.url}")`;
+    el.bgPhoto.src = match.url;
     el.bgPhoto.classList.add('active');
     el.bgScrim.classList.add('photo-active');
   } else {
