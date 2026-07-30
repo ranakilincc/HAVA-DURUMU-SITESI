@@ -618,11 +618,12 @@ function applyBackground(weatherId, icon, photoUrl) {
 
   if (photoUrl) {
     const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.05) 0%, rgba(6,9,14,0.35) 60%, rgba(6,9,14,0.82) 100%)';
-    document.body.style.backgroundImage = `${scrim}, url("${photoUrl}")`;
-    // "contain" -> fotoğrafın tamamı görünür (kenarlarda tema rengiyle boşluk kalabilir),
-    // "cover" gibi görselin büyük bölümünü kırpmaz.
-    document.body.style.backgroundSize = '100% 100%, contain';
-    document.body.style.backgroundPosition = '0 0, center';
+    // 3 katman: karartma (üstte) + fotoğrafın tamamı (contain, kırpılmadan) +
+    // en altta hava durumu gradyanı (cover) — "contain" görselin etrafında
+    // bıraktığı boşlukları düz siyah yerine bu gradyanla dolduruyor.
+    document.body.style.backgroundImage = `${scrim}, url("${photoUrl}"), ${grad}`;
+    document.body.style.backgroundSize = '100% 100%, contain, cover';
+    document.body.style.backgroundPosition = '0 0, center, center';
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
