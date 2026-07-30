@@ -619,8 +619,10 @@ function applyBackground(weatherId, icon, photoUrl) {
   if (photoUrl) {
     const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.05) 0%, rgba(6,9,14,0.35) 60%, rgba(6,9,14,0.82) 100%)';
     document.body.style.backgroundImage = `${scrim}, url("${photoUrl}")`;
-    document.body.style.backgroundSize = '100% 100%, cover';
-    document.body.style.backgroundPosition = '0 0, center 35%';
+    // "contain" -> fotoğrafın tamamı görünür (kenarlarda tema rengiyle boşluk kalabilir),
+    // "cover" gibi görselin büyük bölümünü kırpmaz.
+    document.body.style.backgroundSize = '100% 100%, contain';
+    document.body.style.backgroundPosition = '0 0, center';
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
