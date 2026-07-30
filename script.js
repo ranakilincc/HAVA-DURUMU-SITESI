@@ -11,15 +11,17 @@ const HISTORY_KEY = 'weatherApp.history';
 const HISTORY_MAX = 5;
 const FAVORITES_KEY = 'weatherApp.favorites';
 
-// Bilinen büyük şehirler için tarihi/simge yapı fotoğrafı (Wikipedia, açık lisans).
+// Bilinen büyük şehirler için tarihi/simge yapı fotoğrafı.
+// Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
+// bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
 // Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
 const LANDMARKS = {
-  'istanbul': { url: 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Istanbul_K%C4%B1z_Kulesi_%2854511155871%29_%28cropped%29.jpg', lat: 41.0082, lon: 28.9784 },
-  'ankara': { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Ataturk%27s_Mausoleum_%286225341313%29.jpg/3840px-Ataturk%27s_Mausoleum_%286225341313%29.jpg', lat: 39.9334, lon: 32.8597 },
-  'izmir': { url: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/Izmir_square_clock_tower.jpg', lat: 38.4237, lon: 27.1428 },
-  'bursa': { url: 'https://upload.wikimedia.org/wikipedia/commons/1/19/71_Bursa_la_Grande_Moschea_%28Edited%29.jpg', lat: 40.1826, lon: 29.0665 },
-  'antalya': { url: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Yivli_Minaret_Mosque_Antalya.jpg', lat: 36.8969, lon: 30.7133 },
-  'konya': { url: 'https://upload.wikimedia.org/wikipedia/commons/8/88/MevlanaMuseum.jpg', lat: 37.8746, lon: 32.4932 },
+  'istanbul': { url: 'assets/landmarks/istanbul.jpg', lat: 41.0082, lon: 28.9784 },
+  'ankara': { url: 'assets/landmarks/ankara.jpg', lat: 39.9334, lon: 32.8597 },
+  'izmir': { url: 'assets/landmarks/izmir.jpg', lat: 38.4237, lon: 27.1428 },
+  'bursa': { url: 'assets/landmarks/bursa.jpg', lat: 40.1826, lon: 29.0665 },
+  'antalya': { url: 'assets/landmarks/antalya.jpg', lat: 36.8969, lon: 30.7133 },
+  'konya': { url: 'assets/landmarks/konya.jpg', lat: 37.8746, lon: 32.4932 },
 };
 const LANDMARK_MATCH_RADIUS_KM = 60;
 
