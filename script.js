@@ -15,13 +15,16 @@ const FAVORITES_KEY = 'weatherApp.favorites';
 // Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
 // bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
 // Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
+// "position" değerleri her fotoğrafın kendi kompozisyonuna göre elle ayarlandı
+// (görsellerin oranı 0.89 ile 1.96 arasında değişiyor, tek bir ortak değer
+// bazılarında konuyu kadraj dışına itiyordu).
 const LANDMARKS = {
-  'istanbul': { url: 'assets/landmarks/istanbul.jpg', lat: 41.0082, lon: 28.9784 },
-  'ankara': { url: 'assets/landmarks/ankara.jpg', lat: 39.9334, lon: 32.8597 },
-  'izmir': { url: 'assets/landmarks/izmir.jpg', lat: 38.4237, lon: 27.1428 },
-  'bursa': { url: 'assets/landmarks/bursa.jpg', lat: 40.1826, lon: 29.0665 },
-  'antalya': { url: 'assets/landmarks/antalya.jpg', lat: 36.8969, lon: 30.7133 },
-  'konya': { url: 'assets/landmarks/konya.jpg', lat: 37.8746, lon: 32.4932 },
+  'istanbul': { url: 'assets/landmarks/istanbul.jpg', lat: 41.0082, lon: 28.9784, position: 'center 32%' },
+  'ankara': { url: 'assets/landmarks/ankara.jpg', lat: 39.9334, lon: 32.8597, position: 'center 48%' },
+  'izmir': { url: 'assets/landmarks/izmir.jpg', lat: 38.4237, lon: 27.1428, position: 'center 40%' },
+  'bursa': { url: 'assets/landmarks/bursa.jpg', lat: 40.1826, lon: 29.0665, position: 'center 45%' },
+  'antalya': { url: 'assets/landmarks/antalya.jpg', lat: 36.8969, lon: 30.7133, position: 'center 48%' },
+  'konya': { url: 'assets/landmarks/konya.jpg', lat: 37.8746, lon: 32.4932, position: 'center 58%' },
 };
 const LANDMARK_MATCH_RADIUS_KM = 60;
 
@@ -200,7 +203,7 @@ function findLandmarkPhoto(cityName, lat, lon) {
     if (closest && closestDist <= LANDMARK_MATCH_RADIUS_KM) match = closest;
   }
 
-  return match ? match.url : null;
+  return match;
 }
 
 // ============================================================
@@ -613,17 +616,16 @@ function weatherGradient(weatherId, icon) {
   return isNight ? 'var(--grad-night)' : 'var(--grad-clouds)';
 }
 
-function applyBackground(weatherId, icon, photoUrl) {
+function applyBackground(weatherId, icon, photo) {
   const grad = weatherGradient(weatherId, icon);
 
-  if (photoUrl) {
-    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.05) 0%, rgba(6,9,14,0.35) 60%, rgba(6,9,14,0.82) 100%)';
-    // 3 katman: karartma (üstte) + fotoğrafın tamamı (contain, kırpılmadan) +
-    // en altta hava durumu gradyanı (cover) — "contain" görselin etrafında
-    // bıraktığı boşlukları düz siyah yerine bu gradyanla dolduruyor.
-    document.body.style.backgroundImage = `${scrim}, url("${photoUrl}"), ${grad}`;
-    document.body.style.backgroundSize = '100% 100%, contain, cover';
-    document.body.style.backgroundPosition = '0 0, center, center';
+  if (photo) {
+    // Fotoğrafın kendine özel "position" değeriyle temiz bir "cover" kırpması —
+    // "contain" + boşluk doldurma denemesi kenar dikişleri bırakıyordu.
+    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
+    document.body.style.backgroundImage = `${scrim}, url("${photo.url}")`;
+    document.body.style.backgroundSize = '100% 100%, cover';
+    document.body.style.backgroundPosition = `0 0, ${photo.position || 'center'}`;
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
@@ -666,8 +668,8 @@ function renderCurrent(data) {
   el.miniCityName.textContent = data.name;
   el.miniTemp.textContent = `${fmtTemp(data.main.temp)}°`;
 
-  const photoUrl = findLandmarkPhoto(data.name, data.coord.lat, data.coord.lon);
-  applyBackground(data.weather[0].id, icon, photoUrl);
+  const photo = findLandmarkPhoto(data.name, data.coord.lat, data.coord.lon);
+  applyBackground(data.weather[0].id, icon, photo);
   setWeatherFx(data.weather[0].id, icon);
   startClock(data.timezone);
   renderMoonPhase();
