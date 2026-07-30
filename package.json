@@ -1,0 +1,11 @@
+{
+  "name": "hava-durumu",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.38.0"
+  }
+}

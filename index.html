@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hava Durumu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-layer" id="bgLayer"></div>
+<div class="bg-photo" id="bgPhoto"></div>
+<div class="bg-scrim" id="bgScrim"></div>
+<canvas class="weather-fx" id="weatherFx"></canvas>
+
+<div class="shell">
+
+  <!-- SIDEBAR (desktop) / DRAWER (mobile) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <span class="brand-icon">⛅</span>
+      <span class="brand-name">HavaDurum</span>
+    </div>
+
+    <nav class="side-nav">
+      <a href="#heroSection" class="nav-link active" data-target="heroSection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+        Ana Sayfa
+      </a>
+      <a href="#hourlySection" class="nav-link" data-target="hourlySection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Saatlik Tahmin
+      </a>
+      <a href="#forecastSection" class="nav-link" data-target="forecastSection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+        5 Günlük Tahmin
+      </a>
+      <a href="#aqiSection" class="nav-link" data-target="aqiSection">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69s-7 7.11-7 11.31a7 7 0 0 0 14 0c0-4.2-7-11.31-7-11.31z"/></svg>
+        Hava Kalitesi
+      </a>
+    </nav>
+
+    <div class="side-favorites">
+      <h3>Favoriler</h3>
+      <div class="favorites-list" id="favoritesList"></div>
+    </div>
+
+    <div class="side-history">
+      <h3>Son Aramalar</h3>
+      <div class="history" id="historyList"></div>
+    </div>
+
+    <div class="side-mini-weather" id="sideMiniWeather">
+      <span id="miniCityName">--</span>
+      <span id="miniTemp">--°</span>
+    </div>
+  </aside>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <main class="dashboard">
+
+    <div class="dash-topbar">
+      <button id="sidebarToggle" class="sidebar-toggle" aria-label="Menü">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div class="search-box">
+        <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="cityInput" placeholder="Şehir, ilçe veya bölge ara..." autocomplete="off">
+        <button id="searchBtn" class="icon-btn" title="Ara">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <button id="locBtn" class="loc-btn" title="Konumumu Kullan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      </button>
+
+      <button id="favoriteBtn" class="favorite-btn" title="Favorilere Ekle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+        <span>Favorilere Ekle</span>
+      </button>
+
+      <button id="unitToggle" class="unit-toggle">°C / °F</button>
+    </div>
+
+    <div id="errorBanner" class="error-banner hidden"></div>
+
+    <div id="loadingSpinner" class="spinner-wrap hidden">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- SKELETON -->
+    <div id="skeleton" class="skeleton hidden">
+      <div class="skel-card skel-main"></div>
+      <div class="skel-grid">
+        <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+      </div>
+    </div>
+
+    <div id="content" class="dash-grid hidden">
+
+      <!-- HERO -->
+      <section class="hero-section" id="heroSection" data-observe>
+        <div class="hero-top">
+          <div class="place-info">
+            <h1 id="cityName">--</h1>
+            <img id="flagImg" class="flag" alt="" />
+          </div>
+          <p id="dateTime" class="datetime">--</p>
+        </div>
+
+        <div class="hero-body">
+          <div class="hero-temp-row">
+            <span id="tempValue" class="temp-value">--</span>
+            <span class="temp-unit" id="tempUnit">°C</span>
+            <img id="weatherIcon" class="weather-icon" alt="">
+          </div>
+          <p id="weatherDesc" class="weather-desc">--</p>
+          <div class="hero-meta">
+            <span id="hiLo" class="hi-lo">Y: --°   D: --°</span>
+            <span class="feels-chip">Hissedilen <b id="feelsLike">--°</b></span>
+          </div>
+          <p id="insightBlurb" class="insight-blurb">--</p>
+        </div>
+
+        <div class="sun-times">
+          <div class="sun-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            <span>Doğuş: <b id="sunrise">--</b></span>
+          </div>
+          <div class="sun-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>
+            <span>Batış: <b id="sunset">--</b></span>
+          </div>
+          <div class="sun-item">
+            <span id="moonIcon" class="moon-icon">🌙</span>
+            <span>Ay: <b id="moonName">--</b></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ROW: HOURLY + DETAILS -->
+      <div class="dash-row">
+        <section class="card hourly-card" id="hourlySection" data-observe>
+          <h2 class="section-title">Saatlik Tahmin</h2>
+          <svg id="hourlyChart" class="hourly-chart" viewBox="0 0 320 60" preserveAspectRatio="none"></svg>
+          <div class="hourly-scroll" id="hourlyScroll"></div>
+        </section>
+
+        <section class="card env-card" data-observe>
+          <h2 class="section-title">Hava Detayları</h2>
+          <div class="env-list">
+            <div class="env-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69s-7 7.11-7 11.31a7 7 0 0 0 14 0c0-4.2-7-11.31-7-11.31z"/></svg>
+              <span class="env-label">Nem</span>
+              <span class="env-value" id="humidity">--%</span>
+            </div>
+            <div class="env-row">
+              <div class="mini-compass">
+                <span class="mc-label mc-n">K</span>
+                <span class="mc-label mc-e">D</span>
+                <span class="mc-label mc-s">G</span>
+                <span class="mc-label mc-w">B</span>
+                <div class="mc-needle" id="windNeedle"></div>
+              </div>
+              <span class="env-label">Rüzgar</span>
+              <span class="env-value" id="windSpeed">--</span>
+            </div>
+            <div class="env-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><circle cx="12" cy="12" r="6"/></svg>
+              <span class="env-label">Basınç</span>
+              <span class="env-value" id="pressure">-- hPa</span>
+            </div>
+            <div class="env-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <span class="env-label">Görüş Mesafesi</span>
+              <span class="env-value" id="visibility">--</span>
+            </div>
+            <div class="env-row">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <span class="env-label">UV İndeksi</span>
+              <span class="env-value" id="uvIndex">--</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ROW: FORECAST + AQI + INSIGHTS -->
+      <div class="dash-row dash-row-3">
+        <section class="card forecast-card" id="forecastSection" data-observe>
+          <h2 class="section-title">5 Günlük Tahmin</h2>
+          <svg id="trendChart" class="trend-chart" viewBox="0 0 320 90" preserveAspectRatio="none"></svg>
+          <div class="forecast-strip" id="forecastDays"></div>
+        </section>
+
+        <section class="card aqi-card" id="aqiSection" data-observe>
+          <h2 class="section-title">Hava Kalitesi</h2>
+          <div class="aqi-top">
+            <div class="aqi-badge" id="aqiBadge">
+              <span id="aqiValue">--</span>
+              <small id="aqiLabel">--</small>
+            </div>
+            <div class="aqi-details">
+              <div class="aqi-item"><span>PM2.5</span><b id="pm25">--</b></div>
+              <div class="aqi-item"><span>PM10</span><b id="pm10">--</b></div>
+              <div class="aqi-item"><span>NO₂</span><b id="no2">--</b></div>
+              <div class="aqi-item"><span>O₃</span><b id="o3">--</b></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card highlights-card" data-observe>
+          <h2 class="section-title">Öne Çıkanlar</h2>
+          <div class="highlights-list" id="highlightsList"></div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottom-nav" id="bottomNav">
+  <a href="#heroSection" class="bnav-item active" data-target="heroSection">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l9-9 9 9M5 10v10h14V10"/></svg>
+    <span>Bugün</span>
+  </a>
+  <a href="#hourlySection" class="bnav-item" data-target="hourlySection">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <span>Saatlik</span>
+  </a>
+  <a href="#forecastSection" class="bnav-item" data-target="forecastSection">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    <span>Tahmin</span>
+  </a>
+  <a href="#aqiSection" class="bnav-item" data-target="aqiSection">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69s-7 7.11-7 11.31a7 7 0 0 0 14 0c0-4.2-7-11.31-7-11.31z"/></svg>
+    <span>Hava Kalitesi</span>
+  </a>
+</nav>
+
+<script src="script.js"></script>
+</body>
+</html>
