@@ -50,9 +50,6 @@ function normalizeCity(name) {
 
 // ---------- DOM references ----------
 const el = {
-  bgLayer: document.getElementById('bgLayer'),
-  bgPhoto: document.getElementById('bgPhoto'),
-  bgScrim: document.getElementById('bgScrim'),
   cityInput: document.getElementById('cityInput'),
   searchBtn: document.getElementById('searchBtn'),
   locBtn: document.getElementById('locBtn'),
@@ -184,7 +181,8 @@ function flagUrl(countryCode) {
 // ============================================================
 // Hero background photo (landmark or weather gradient fallback)
 // ============================================================
-function applyHeroPhoto(cityName, lat, lon) {
+// Eşleşen landmark URL'sini döner, yoksa null — DOM'a burada dokunmaz.
+function findLandmarkPhoto(cityName, lat, lon) {
   let match = LANDMARKS[normalizeCity(cityName)];
 
   // Konum bazlı aramalarda OWM genelde semt adı döndürür (ör. "Ulus"),
@@ -202,14 +200,7 @@ function applyHeroPhoto(cityName, lat, lon) {
     if (closest && closestDist <= LANDMARK_MATCH_RADIUS_KM) match = closest;
   }
 
-  if (match) {
-    el.bgPhoto.src = match.url;
-    el.bgPhoto.classList.add('active');
-    el.bgScrim.classList.add('photo-active');
-  } else {
-    el.bgPhoto.classList.remove('active');
-    el.bgScrim.classList.remove('photo-active');
-  }
+  return match ? match.url : null;
 }
 
 // ============================================================
@@ -611,25 +602,30 @@ async function fetchUvIndex(lat, lon) {
 }
 
 // ============================================================
-// Background gradient (fallback when no landmark photo)
+// Sayfa arka planı — doğrudan body.style üzerinden (bkz. style.css notu)
 // ============================================================
-function applyBackground(weatherId, icon) {
+function weatherGradient(weatherId, icon) {
   const isNight = icon.endsWith('n');
-  let grad;
+  if (weatherId >= 200 && weatherId < 600) return 'var(--grad-rain)';
+  if (weatherId >= 600 && weatherId < 700) return 'var(--grad-snow)';
+  if (weatherId >= 700 && weatherId < 800) return 'var(--grad-clouds)';
+  if (weatherId === 800) return isNight ? 'var(--grad-night)' : 'var(--grad-clear-day)';
+  return isNight ? 'var(--grad-night)' : 'var(--grad-clouds)';
+}
 
-  if (weatherId >= 200 && weatherId < 600) {
-    grad = 'var(--grad-rain)';
-  } else if (weatherId >= 600 && weatherId < 700) {
-    grad = 'var(--grad-snow)';
-  } else if (weatherId >= 700 && weatherId < 800) {
-    grad = 'var(--grad-clouds)';
-  } else if (weatherId === 800) {
-    grad = isNight ? 'var(--grad-night)' : 'var(--grad-clear-day)';
+function applyBackground(weatherId, icon, photoUrl) {
+  const grad = weatherGradient(weatherId, icon);
+
+  if (photoUrl) {
+    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.05) 0%, rgba(6,9,14,0.35) 60%, rgba(6,9,14,0.82) 100%)';
+    document.body.style.backgroundImage = `${scrim}, url("${photoUrl}")`;
+    document.body.style.backgroundSize = '100% 100%, cover';
+    document.body.style.backgroundPosition = '0 0, center 35%';
   } else {
-    grad = isNight ? 'var(--grad-night)' : 'var(--grad-clouds)';
+    document.body.style.backgroundImage = grad;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
   }
-
-  el.bgLayer.style.background = grad;
 }
 
 // ============================================================
@@ -667,8 +663,8 @@ function renderCurrent(data) {
   el.miniCityName.textContent = data.name;
   el.miniTemp.textContent = `${fmtTemp(data.main.temp)}°`;
 
-  applyBackground(data.weather[0].id, icon);
-  applyHeroPhoto(data.name, data.coord.lat, data.coord.lon);
+  const photoUrl = findLandmarkPhoto(data.name, data.coord.lat, data.coord.lon);
+  applyBackground(data.weather[0].id, icon, photoUrl);
   setWeatherFx(data.weather[0].id, icon);
   startClock(data.timezone);
   renderMoonPhase();
