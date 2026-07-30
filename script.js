@@ -15,16 +15,17 @@ const FAVORITES_KEY = 'weatherApp.favorites';
 // Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
 // bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
 // Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
-// "position" değerleri her fotoğrafın kendi kompozisyonuna göre elle ayarlandı
-// (görsellerin oranı 0.89 ile 1.96 arasında değişiyor, tek bir ortak değer
-// bazılarında konuyu kadraj dışına itiyordu).
+// Fotoğrafların en/boy oranları çok farklı (0.89 ile 1.96 arasında), "cover"
+// bazılarında görselin büyük kısmını kırpıyordu. Artık fotoğrafın tamamı
+// ("contain") gösteriliyor, kenarlarda kalan boşluk aynı fotoğrafın
+// bulanıklaştırılmış ("blurUrl") kopyasıyla dolduruluyor.
 const LANDMARKS = {
-  'istanbul': { url: 'assets/landmarks/istanbul.jpg', lat: 41.0082, lon: 28.9784, position: 'center 32%' },
-  'ankara': { url: 'assets/landmarks/ankara.jpg', lat: 39.9334, lon: 32.8597, position: 'center 48%' },
-  'izmir': { url: 'assets/landmarks/izmir.jpg', lat: 38.4237, lon: 27.1428, position: 'center 40%' },
-  'bursa': { url: 'assets/landmarks/bursa.jpg', lat: 40.1826, lon: 29.0665, position: 'center 45%' },
-  'antalya': { url: 'assets/landmarks/antalya.jpg', lat: 36.8969, lon: 30.7133, position: 'center 48%' },
-  'konya': { url: 'assets/landmarks/konya.jpg', lat: 37.8746, lon: 32.4932, position: 'center 58%' },
+  'istanbul': { url: 'assets/landmarks/istanbul.jpg', blurUrl: 'assets/landmarks/istanbul-blur.jpg', lat: 41.0082, lon: 28.9784 },
+  'ankara': { url: 'assets/landmarks/ankara.jpg', blurUrl: 'assets/landmarks/ankara-blur.jpg', lat: 39.9334, lon: 32.8597 },
+  'izmir': { url: 'assets/landmarks/izmir.jpg', blurUrl: 'assets/landmarks/izmir-blur.jpg', lat: 38.4237, lon: 27.1428 },
+  'bursa': { url: 'assets/landmarks/bursa.jpg', blurUrl: 'assets/landmarks/bursa-blur.jpg', lat: 40.1826, lon: 29.0665 },
+  'antalya': { url: 'assets/landmarks/antalya.jpg', blurUrl: 'assets/landmarks/antalya-blur.jpg', lat: 36.8969, lon: 30.7133 },
+  'konya': { url: 'assets/landmarks/konya.jpg', blurUrl: 'assets/landmarks/konya-blur.jpg', lat: 37.8746, lon: 32.4932 },
 };
 const LANDMARK_MATCH_RADIUS_KM = 60;
 
@@ -620,12 +621,13 @@ function applyBackground(weatherId, icon, photo) {
   const grad = weatherGradient(weatherId, icon);
 
   if (photo) {
-    // Fotoğrafın kendine özel "position" değeriyle temiz bir "cover" kırpması —
-    // "contain" + boşluk doldurma denemesi kenar dikişleri bırakıyordu.
-    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
-    document.body.style.backgroundImage = `${scrim}, url("${photo.url}")`;
-    document.body.style.backgroundSize = '100% 100%, cover';
-    document.body.style.backgroundPosition = `0 0, ${photo.position || 'center'}`;
+    // 3 katman: karartma (üstte) + fotoğrafın TAMAMI (contain, kırpılmadan) +
+    // en altta aynı fotoğrafın bulanık/kararmış "cover" kopyası — kenarlarda
+    // kalan boşluğu düz renk yerine gerçek görselin devamı gibi dolduruyor.
+    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.1) 0%, rgba(6,9,14,0.3) 55%, rgba(6,9,14,0.75) 100%)';
+    document.body.style.backgroundImage = `${scrim}, url("${photo.url}"), url("${photo.blurUrl}")`;
+    document.body.style.backgroundSize = '100% 100%, contain, cover';
+    document.body.style.backgroundPosition = '0 0, center, center';
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
