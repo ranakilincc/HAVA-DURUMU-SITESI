@@ -64,6 +64,8 @@ const el = {
   forecastDays: document.getElementById('forecastDays'),
   hourlyScroll: document.getElementById('hourlyScroll'),
   highlightsList: document.getElementById('highlightsList'),
+  compareGrid: document.getElementById('compareGrid'),
+  compareEmpty: document.getElementById('compareEmpty'),
 
   moonIcon: document.getElementById('moonIcon'),
   moonName: document.getElementById('moonName'),
@@ -82,6 +84,7 @@ const state = {
   selectedDayIndex: 0,
   clockTimer: null,
   uvValue: null,
+  compareData: [], // [{ city, data }] favori şehirlerin son çekilen anlık hava durumu
 };
 
 // ============================================================
@@ -449,6 +452,7 @@ function toggleFavorite(cityLabel) {
   }
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
   renderFavorites();
+  renderCompare();
   updateFavoriteButtonState(cityLabel);
   pushFavoriteToggleToBackend(cityLabel);
 }
@@ -457,6 +461,7 @@ function removeFavorite(cityLabel) {
   const favs = getFavorites().filter((c) => c.toLowerCase() !== cityLabel.toLowerCase());
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
   renderFavorites();
+  renderCompare();
   if (state.current && state.current.name.toLowerCase() === cityLabel.toLowerCase()) {
     updateFavoriteButtonState(cityLabel);
   }
@@ -472,6 +477,7 @@ async function syncFavoritesFromBackend() {
     if (Array.isArray(favorites) && favorites.length) {
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
       renderFavorites();
+      renderCompare();
       if (state.current) updateFavoriteButtonState(state.current.name);
     }
   } catch {
@@ -515,6 +521,45 @@ function updateFavoriteButtonState(cityLabel) {
   const fav = isFavorite(cityLabel);
   el.favoriteBtn.classList.toggle('active', fav);
   el.favoriteBtn.setAttribute('aria-pressed', String(fav));
+}
+
+// ============================================================
+// Şehir karşılaştırma — favori şehirlerin anlık hava durumunu
+// yan yana gösterir.
+// ============================================================
+async function renderCompare() {
+  if (!el.compareGrid) return;
+  const favs = getFavorites();
+  if (!favs.length) {
+    state.compareData = [];
+    el.compareGrid.innerHTML = '';
+    if (el.compareEmpty) el.compareEmpty.classList.remove('hidden');
+    return;
+  }
+  if (el.compareEmpty) el.compareEmpty.classList.add('hidden');
+  const results = await Promise.all(
+    favs.map((city) => fetchCurrentByCity(city).then((data) => ({ city, data })).catch(() => null))
+  );
+  state.compareData = results.filter(Boolean);
+  paintCompare();
+}
+
+function paintCompare() {
+  if (!el.compareGrid) return;
+  el.compareGrid.innerHTML = '';
+  state.compareData.forEach(({ city, data }) => {
+    const tile = document.createElement('div');
+    tile.className = 'compare-tile';
+    tile.innerHTML = `
+      <span class="compare-tile-city">${data.name}</span>
+      <img src="${weatherIconUrl(data.weather[0].icon)}" alt="${data.weather[0].description}">
+      <span class="compare-tile-temp">${fmtTemp(data.main.temp)}°</span>
+      <span class="compare-tile-desc">${data.weather[0].description}</span>
+    `;
+    tile.addEventListener('click', () => loadByCity(city));
+    makeKeyboardClickable(tile, `${city} için hava durumunu göster`);
+    el.compareGrid.appendChild(tile);
+  });
 }
 
 // ============================================================
@@ -951,7 +996,7 @@ function setupObserver() {
 }
 
 function setupNavObserver() {
-  const sections = ['heroSection', 'hourlySection', 'forecastSection', 'aqiSection']
+  const sections = ['heroSection', 'hourlySection', 'forecastSection', 'aqiSection', 'compareSection']
     .map((id) => document.getElementById(id))
     .filter(Boolean);
 
@@ -1112,6 +1157,7 @@ el.unitToggle.addEventListener('click', () => {
     renderTrendChart(state.forecastGroups);
     renderHighlights();
   }
+  if (state.compareData.length) paintCompare();
 });
 
 // ============================================================
@@ -1142,6 +1188,7 @@ applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'li
 // ============================================================
 renderHistory();
 renderFavorites();
+renderCompare();
 syncHistoryFromBackend();
 syncFavoritesFromBackend();
 loadByGeolocation();
