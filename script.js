@@ -15,10 +15,17 @@ const FAVORITES_KEY = 'weatherApp.favorites';
 // Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
 // bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
 // Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
-// "blurUrl": aynı fotoğrafın bulanık/kararmış kopyası — dar (mobil) ekranlarda
-// fotoğrafın tamamını göstermek için "contain" + bu bulanık dolgu kullanılıyor.
+// "mobileUrl": aynı fotoğrafın dikey (3:4) akıllı kırpılmış hâli — konu
+// otomatik kadrajda kalacak şekilde (sharp'ın "attention" stratejisiyle)
+// önceden üretildi. Dar ekranlarda yatay fotoğrafı zorlamak yerine bu
+// kullanılıyor, ikisi de temiz "cover" ile gösteriliyor.
 function landmark(city, lat, lon) {
-  return { url: `assets/landmarks/${city}.jpg`, blurUrl: `assets/landmarks/${city}-blur.jpg`, lat, lon };
+  return {
+    url: `assets/landmarks/${city}.jpg`,
+    mobileUrl: `assets/landmarks/${city}-mobile.jpg`,
+    lat,
+    lon,
+  };
 }
 
 const LANDMARKS = {
@@ -647,17 +654,11 @@ function applyBackground(weatherId, icon, photo) {
   const isNarrow = window.innerWidth < MOBILE_BREAKPOINT_PX;
 
   if (photo) {
-    if (isNarrow) {
-      const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.1) 0%, rgba(6,9,14,0.3) 55%, rgba(6,9,14,0.75) 100%)';
-      document.body.style.backgroundImage = `${scrim}, url("${photo.url}"), url("${photo.blurUrl}")`;
-      document.body.style.backgroundSize = '100% 100%, contain, cover';
-      document.body.style.backgroundPosition = '0 0, center, center';
-    } else {
-      const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
-      document.body.style.backgroundImage = `${scrim}, url("${photo.url}")`;
-      document.body.style.backgroundSize = '100% 100%, cover';
-      document.body.style.backgroundPosition = '0 0, center';
-    }
+    const url = isNarrow ? photo.mobileUrl : photo.url;
+    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
+    document.body.style.backgroundImage = `${scrim}, url("${url}")`;
+    document.body.style.backgroundSize = '100% 100%, cover';
+    document.body.style.backgroundPosition = '0 0, center';
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
