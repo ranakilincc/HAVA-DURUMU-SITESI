@@ -3,7 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hava Durumu</title>
+<title>HavaDurum — Gerçek Zamanlı Hava Durumu</title>
+<meta name="description" content="Şehir bazlı gerçek zamanlı hava durumu, saatlik ve 5 günlük tahmin, hava kalitesi ve daha fazlası.">
+<meta name="theme-color" content="#0b0e14">
+
+<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/icon-48.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="HavaDurum — Gerçek Zamanlı Hava Durumu">
+<meta property="og:description" content="Şehir bazlı gerçek zamanlı hava durumu, saatlik ve 5 günlük tahmin, hava kalitesi ve daha fazlası.">
+<meta property="og:image" content="icons/og-banner.jpg">
+<meta property="og:url" content="https://hava-durumu-sitesi-hw46.vercel.app">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HavaDurum — Gerçek Zamanlı Hava Durumu">
+<meta name="twitter:description" content="Şehir bazlı gerçek zamanlı hava durumu, saatlik ve 5 günlük tahmin, hava kalitesi ve daha fazlası.">
+<meta name="twitter:image" content="icons/og-banner.jpg">
+
 <script>
   // CSS yüklenmeden önce doğru temayı uygula — aksi halde sayfa
   // her açılışta bir an için yanlış temayla (flaş) görünür.
@@ -80,29 +98,29 @@
       <div class="search-box">
         <svg class="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="cityInput" placeholder="Şehir, ilçe veya bölge ara..." autocomplete="off">
-        <button id="searchBtn" class="icon-btn" title="Ara">
+        <button id="searchBtn" class="icon-btn" title="Ara" aria-label="Ara">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </button>
       </div>
 
-      <button id="locBtn" class="loc-btn" title="Konumumu Kullan">
+      <button id="locBtn" class="loc-btn" title="Konumumu Kullan" aria-label="Konumumu kullan">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
       </button>
 
-      <button id="favoriteBtn" class="favorite-btn" title="Favorilere Ekle">
+      <button id="favoriteBtn" class="favorite-btn" title="Favorilere Ekle" aria-label="Favorilere ekle" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
         <span>Favorilere Ekle</span>
       </button>
 
-      <button id="unitToggle" class="unit-toggle">°C / °F</button>
+      <button id="unitToggle" class="unit-toggle" aria-label="Sıcaklık birimini değiştir (Celsius / Fahrenheit)">°C / °F</button>
 
-      <button id="themeToggle" class="theme-toggle" title="Koyu / Açık Mod">
+      <button id="themeToggle" class="theme-toggle" title="Koyu / Açık Mod" aria-label="Koyu / açık mod değiştir">
         <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg id="themeIconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hidden"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
     </div>
 
-    <div id="errorBanner" class="error-banner hidden"></div>
+    <div id="errorBanner" class="error-banner hidden" role="alert" aria-live="assertive"></div>
 
     <div id="loadingSpinner" class="spinner-wrap hidden">
       <div class="spinner"></div>
@@ -226,6 +244,7 @@
               <div class="aqi-item"><span>O₃</span><b id="o3">--</b></div>
             </div>
           </div>
+          <div class="aqi-forecast" id="aqiForecast"></div>
         </section>
 
         <section class="card highlights-card" data-observe>

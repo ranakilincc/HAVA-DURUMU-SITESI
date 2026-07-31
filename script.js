@@ -55,6 +55,7 @@ const el = {
   aqiBadge: document.getElementById('aqiBadge'),
   aqiValue: document.getElementById('aqiValue'),
   aqiLabel: document.getElementById('aqiLabel'),
+  aqiForecast: document.getElementById('aqiForecast'),
   pm25: document.getElementById('pm25'),
   pm10: document.getElementById('pm10'),
   no2: document.getElementById('no2'),
@@ -92,6 +93,24 @@ function debounce(fn, delay) {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
   };
+}
+
+// Tıklanabilir <div> öğelerini (buton olmadıkları için varsayılan olarak
+// klavyeyle ulaşılamıyorlar) Tab ile odaklanabilir + Enter/Boşluk ile
+// tetiklenebilir hale getirir.
+function makeKeyboardClickable(node, label) {
+  node.tabIndex = 0;
+  node.setAttribute('role', 'button');
+  if (label) node.setAttribute('aria-label', label);
+  node.addEventListener('keydown', (e) => {
+    // e.target !== node kontrolü: içinde ayrı bir buton (ör. favori
+    // kartındaki "kaldır" butonu) varsa, ona basılan Enter/Boşluk'un
+    // buraya taşıp asıl tıklamayı da tetiklemesini önler.
+    if ((e.key === 'Enter' || e.key === ' ') && e.target === node) {
+      e.preventDefault();
+      node.click();
+    }
+  });
 }
 
 function showError(message) {
@@ -478,6 +497,7 @@ function renderFavorites() {
     chip.className = 'fav-chip';
     chip.innerHTML = `<span>${city}</span>`;
     chip.addEventListener('click', () => loadByCity(city));
+    makeKeyboardClickable(chip, `${city} için hava durumunu göster`);
 
     const removeBtn = document.createElement('button');
     removeBtn.className = 'fav-remove icon-btn';
@@ -492,7 +512,9 @@ function renderFavorites() {
 }
 
 function updateFavoriteButtonState(cityLabel) {
-  el.favoriteBtn.classList.toggle('active', isFavorite(cityLabel));
+  const fav = isFavorite(cityLabel);
+  el.favoriteBtn.classList.toggle('active', fav);
+  el.favoriteBtn.setAttribute('aria-pressed', String(fav));
 }
 
 // ============================================================
@@ -537,6 +559,11 @@ function fetchAirPollution(lat, lon) {
   return apiGet(url);
 }
 
+function fetchAirPollutionForecast(lat, lon) {
+  const url = `${CONFIG.BASE_URL}/air-pollution-forecast?lat=${lat}&lon=${lon}`;
+  return apiGet(url);
+}
+
 // UV index: eski/deprecated uçlarda bulunur, bazı hesaplarda çalışmayabilir.
 async function fetchUvIndex(lat, lon) {
   try {
@@ -574,7 +601,7 @@ function applyBackground(weatherId, icon) {
 function renderCurrent(data) {
   el.cityName.textContent = `${data.name}`;
   el.flagImg.src = flagUrl(data.sys.country);
-  el.flagImg.alt = data.sys.country;
+  el.flagImg.alt = `${data.sys.country} bayrağı`;
 
   const icon = data.weather[0].icon;
   el.weatherIcon.src = weatherIconUrl(icon);
@@ -665,6 +692,38 @@ function renderAQI(data) {
   renderHighlights();
 }
 
+// Her gün için en kötü (en yüksek) AQI değerini gösterir — "bugün genel
+// olarak nasıl" sorusuna tek bakışta cevap veren, yaygın kullanılan yöntem.
+function renderAQIForecast(data) {
+  if (!el.aqiForecast || !data || !Array.isArray(data.list)) return;
+  const tzOffset = state.forecastMeta ? state.forecastMeta.timezone : 0;
+  const groups = new Map();
+
+  data.list.forEach((item) => {
+    const localDate = new Date((item.dt + tzOffset) * 1000);
+    const key = `${localDate.getUTCFullYear()}-${localDate.getUTCMonth()}-${localDate.getUTCDate()}`;
+    const aqi = item.main.aqi;
+    if (!groups.has(key)) {
+      groups.set(key, { localDate, worst: aqi });
+    } else if (aqi > groups.get(key).worst) {
+      groups.get(key).worst = aqi;
+    }
+  });
+
+  const days = Array.from(groups.values()).slice(0, 5);
+  el.aqiForecast.innerHTML = days.map((g, i) => {
+    const dayName = i === 0
+      ? 'Bugün'
+      : new Intl.DateTimeFormat('tr-TR', { weekday: 'short', timeZone: 'UTC' }).format(g.localDate);
+    return `
+      <div class="aqi-forecast-day">
+        <div class="aqi-forecast-dot aqi-${g.worst}">${g.worst}</div>
+        <span>${dayName}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 function groupForecastByDay(forecast) {
   const tzOffset = forecast.city.timezone;
   const groups = new Map();
@@ -721,6 +780,7 @@ function renderForecastDays(groups) {
       renderHourly(groups[idx]);
       renderTrendChart(groups);
     });
+    makeKeyboardClickable(tile, `${dayName} için saatlik tahmini göster`);
     el.forecastDays.appendChild(tile);
   });
 }
@@ -951,6 +1011,9 @@ async function loadWeatherData({ city, lat, lon }) {
       el.aqiValue.textContent = '--';
       el.aqiLabel.textContent = 'Kullanılamıyor';
     });
+    fetchAirPollutionForecast(clat, clon).then(renderAQIForecast).catch(() => {
+      if (el.aqiForecast) el.aqiForecast.innerHTML = '';
+    });
     fetchUvIndex(clat, clon).then((uv) => {
       state.uvValue = uv;
       el.uvIndex.textContent = uv === null ? 'N/A' : uv.toFixed(1);
@@ -1082,3 +1145,10 @@ renderFavorites();
 syncHistoryFromBackend();
 syncFavoritesFromBackend();
 loadByGeolocation();
+
+// PWA: "ana ekrana ekle" ve statik dosyaların çevrimdışı önbelleklenmesi için.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}

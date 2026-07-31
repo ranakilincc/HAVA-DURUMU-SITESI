@@ -475,6 +475,10 @@ body {
 .aqi-4 { background: #f4511e; color: #2b0d00; }
 .aqi-5 { background: #9c27b0; color: #fff; }
 
+.aqi-forecast { display: flex; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hairline); flex-wrap: wrap; }
+.aqi-forecast-day { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 11px; color: var(--text-secondary); }
+.aqi-forecast-dot { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+
 /* ---------- HIGHLIGHTS ---------- */
 .highlights-list { display: flex; flex-direction: column; gap: 10px; }
 .highlight-item {
