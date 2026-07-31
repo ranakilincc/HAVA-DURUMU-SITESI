@@ -15,15 +15,28 @@ const FAVORITES_KEY = 'weatherApp.favorites';
 // Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
 // bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
 // Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
-// Hepsi geniş/yatay çekimler (en/boy oranı ~1-2 arası) — basit "cover" ile
-// kırpma sorunu yaşanmıyor.
+// "blurUrl": aynı fotoğrafın bulanık/kararmış kopyası — dar (mobil) ekranlarda
+// fotoğrafın tamamını göstermek için "contain" + bu bulanık dolgu kullanılıyor.
+function landmark(city, lat, lon) {
+  return { url: `assets/landmarks/${city}.jpg`, blurUrl: `assets/landmarks/${city}-blur.jpg`, lat, lon };
+}
+
 const LANDMARKS = {
-  'istanbul': { url: 'assets/landmarks/istanbul.jpg', lat: 41.0082, lon: 28.9784 },
-  'ankara': { url: 'assets/landmarks/ankara.jpg', lat: 39.9334, lon: 32.8597 },
-  'izmir': { url: 'assets/landmarks/izmir.jpg', lat: 38.4237, lon: 27.1428 },
-  'bursa': { url: 'assets/landmarks/bursa.jpg', lat: 40.1826, lon: 29.0665 },
-  'antalya': { url: 'assets/landmarks/antalya.jpg', lat: 36.8969, lon: 30.7133 },
-  'konya': { url: 'assets/landmarks/konya.jpg', lat: 37.8746, lon: 32.4932 },
+  'istanbul': landmark('istanbul', 41.0082, 28.9784),
+  'ankara': landmark('ankara', 39.9334, 32.8597),
+  'izmir': landmark('izmir', 38.4237, 27.1428),
+  'bursa': landmark('bursa', 40.1826, 29.0665),
+  'antalya': landmark('antalya', 36.8969, 30.7133),
+  'konya': landmark('konya', 37.8746, 32.4932),
+  'elazig': landmark('elazig', 38.6810, 39.2264),
+  'adana': landmark('adana', 37.0000, 35.3213),
+  'gaziantep': landmark('gaziantep', 37.0662, 37.3833),
+  'kayseri': landmark('kayseri', 38.7312, 35.4787),
+  'trabzon': landmark('trabzon', 41.0027, 39.7168),
+  'mersin': landmark('mersin', 36.8121, 34.6415),
+  'eskisehir': landmark('eskisehir', 39.7767, 30.5206),
+  'sanliurfa': landmark('sanliurfa', 37.1591, 38.7969),
+  'diyarbakir': landmark('diyarbakir', 37.9144, 40.2306),
 };
 const LANDMARK_MATCH_RADIUS_KM = 60;
 
@@ -253,6 +266,14 @@ function resizeFxCanvas() {
 }
 window.addEventListener('resize', resizeFxCanvas);
 resizeFxCanvas();
+
+// Mobil <-> masaüstü kırılım noktasını geçince (pencere boyutu, ekran döndürme)
+// arka planı doğru mod (cover / contain+blur) ile yeniden uygula.
+window.addEventListener('resize', debounce(() => {
+  if (state.bgWeatherId != null) {
+    applyBackground(state.bgWeatherId, state.bgIcon, state.bgPhoto);
+  }
+}, 250));
 
 function initRain() {
   fxParticles = Array.from({ length: 110 }, () => ({
@@ -615,14 +636,28 @@ function weatherGradient(weatherId, icon) {
   return isNight ? 'var(--grad-night)' : 'var(--grad-clouds)';
 }
 
+// Dar (mobil/dikey) ekranlarda yatay fotoğrafları "cover" ile kırpmak konuyu
+// kadraj dışına atıyordu. Masaüstünde (geniş) temiz "cover" kullanılırken,
+// dar ekranlarda fotoğrafın TAMAMI ("contain") gösteriliyor, kenarlarda kalan
+// boşluk aynı fotoğrafın bulanık kopyasıyla dolduruluyor.
+const MOBILE_BREAKPOINT_PX = 700;
+
 function applyBackground(weatherId, icon, photo) {
   const grad = weatherGradient(weatherId, icon);
+  const isNarrow = window.innerWidth < MOBILE_BREAKPOINT_PX;
 
   if (photo) {
-    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
-    document.body.style.backgroundImage = `${scrim}, url("${photo.url}")`;
-    document.body.style.backgroundSize = '100% 100%, cover';
-    document.body.style.backgroundPosition = '0 0, center';
+    if (isNarrow) {
+      const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.1) 0%, rgba(6,9,14,0.3) 55%, rgba(6,9,14,0.75) 100%)';
+      document.body.style.backgroundImage = `${scrim}, url("${photo.url}"), url("${photo.blurUrl}")`;
+      document.body.style.backgroundSize = '100% 100%, contain, cover';
+      document.body.style.backgroundPosition = '0 0, center, center';
+    } else {
+      const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
+      document.body.style.backgroundImage = `${scrim}, url("${photo.url}")`;
+      document.body.style.backgroundSize = '100% 100%, cover';
+      document.body.style.backgroundPosition = '0 0, center';
+    }
   } else {
     document.body.style.backgroundImage = grad;
     document.body.style.backgroundSize = 'cover';
@@ -666,6 +701,9 @@ function renderCurrent(data) {
   el.miniTemp.textContent = `${fmtTemp(data.main.temp)}°`;
 
   const photo = findLandmarkPhoto(data.name, data.coord.lat, data.coord.lon);
+  state.bgWeatherId = data.weather[0].id;
+  state.bgIcon = icon;
+  state.bgPhoto = photo;
   applyBackground(data.weather[0].id, icon, photo);
   setWeatherFx(data.weather[0].id, icon);
   startClock(data.timezone);
