@@ -34,6 +34,9 @@ const el = {
   flagImg: document.getElementById('flagImg'),
   dateTime: document.getElementById('dateTime'),
   unitToggle: document.getElementById('unitToggle'),
+  themeToggle: document.getElementById('themeToggle'),
+  themeIconMoon: document.getElementById('themeIconMoon'),
+  themeIconSun: document.getElementById('themeIconSun'),
   weatherIcon: document.getElementById('weatherIcon'),
   tempValue: document.getElementById('tempValue'),
   tempUnit: document.getElementById('tempUnit'),
@@ -266,12 +269,20 @@ function drawSunRays() {
   fxCtx.restore();
 }
 
+// Açık temada koyu temanın renkleri (özellikle beyaz/şeffaf olanlar) ya hiç
+// görünmüyor ya da yanlış duruyor — canvas piksel çizdiği için CSS
+// değişkenlerinden haberi yok, rengi burada tema bazlı seçiyoruz.
+function isLightTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light';
+}
+
 function animateFx() {
   fxCtx.clearRect(0, 0, el.weatherFx.width, el.weatherFx.height);
   fxTime += 0.016;
+  const light = isLightTheme();
 
   if (fxMode === 'rain') {
-    fxCtx.strokeStyle = 'rgba(150,180,220,0.4)';
+    fxCtx.strokeStyle = light ? 'rgba(70,110,165,0.4)' : 'rgba(150,180,220,0.4)';
     fxCtx.lineWidth = 1.4;
     fxParticles.forEach((p) => {
       fxCtx.beginPath();
@@ -285,7 +296,7 @@ function animateFx() {
       }
     });
   } else if (fxMode === 'snow') {
-    fxCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    fxCtx.fillStyle = light ? 'rgba(140,190,235,0.8)' : 'rgba(255,255,255,0.85)';
     fxParticles.forEach((p) => {
       fxCtx.beginPath();
       fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -298,7 +309,7 @@ function animateFx() {
       }
     });
   } else if (fxMode === 'clouds') {
-    fxCtx.fillStyle = 'rgba(255,255,255,0.05)';
+    fxCtx.fillStyle = light ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.05)';
     fxParticles.forEach((p) => {
       drawCloud(p.x, p.y, p.scale);
       p.x += p.speed;
@@ -307,7 +318,7 @@ function animateFx() {
   } else if (fxMode === 'stars') {
     fxParticles.forEach((p) => {
       const op = 0.4 + 0.6 * Math.abs(Math.sin(fxTime + p.phase));
-      fxCtx.fillStyle = `rgba(255,255,255,${op})`;
+      fxCtx.fillStyle = light ? `rgba(255,244,214,${op})` : `rgba(255,255,255,${op})`;
       fxCtx.beginPath();
       fxCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       fxCtx.fill();
@@ -1039,6 +1050,29 @@ el.unitToggle.addEventListener('click', () => {
     renderHighlights();
   }
 });
+
+// ============================================================
+// Koyu / Açık mod
+// ============================================================
+const THEME_KEY = 'weatherApp.theme';
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  el.themeIconMoon.classList.toggle('hidden', theme === 'light');
+  el.themeIconSun.classList.toggle('hidden', theme !== 'light');
+  // --grad-*/--surface-* gibi CSS değişkenleri temayla otomatik güncellendiği
+  // için body'nin arka planını yeniden hesaplamaya gerek yok; sadece efekt
+  // renklerini (canvas doğrudan piksel çizdiği için CSS'ten haberi yok) tazele.
+  if (state.current) setWeatherFx(state.current.weather[0].id, state.current.weather[0].icon);
+}
+
+el.themeToggle.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  applyTheme(current === 'light' ? 'dark' : 'light');
+});
+
+applyTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
 
 // ============================================================
 // Init
