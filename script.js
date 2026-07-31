@@ -11,65 +11,6 @@ const HISTORY_KEY = 'weatherApp.history';
 const HISTORY_MAX = 5;
 const FAVORITES_KEY = 'weatherApp.favorites';
 
-// Bilinen büyük şehirler için tarihi/simge yapı fotoğrafı.
-// Görseller projeye gömülü (assets/landmarks/) — Wikimedia gibi dış bir CDN'e
-// bağımlı kalmamak için (bazı ağlarda/tarayıcı eklentilerinde engellenebiliyor).
-// Listede olmayan şehirlerde hava durumuna göre gradyan arka plan kullanılır.
-// "mobileUrl": aynı fotoğrafın dikey (3:4) akıllı kırpılmış hâli — konu
-// otomatik kadrajda kalacak şekilde (sharp'ın "attention" stratejisiyle)
-// önceden üretildi. Dar ekranlarda yatay fotoğrafı zorlamak yerine bu
-// kullanılıyor, ikisi de temiz "cover" ile gösteriliyor.
-function landmark(city, lat, lon) {
-  return {
-    url: `assets/landmarks/${city}.jpg`,
-    mobileUrl: `assets/landmarks/${city}-mobile.jpg`,
-    lat,
-    lon,
-  };
-}
-
-const LANDMARKS = {
-  'istanbul': landmark('istanbul', 41.0082, 28.9784),
-  'ankara': landmark('ankara', 39.9334, 32.8597),
-  'izmir': landmark('izmir', 38.4237, 27.1428),
-  'bursa': landmark('bursa', 40.1826, 29.0665),
-  'antalya': landmark('antalya', 36.8969, 30.7133),
-  'konya': landmark('konya', 37.8746, 32.4932),
-  'elazig': landmark('elazig', 38.6810, 39.2264),
-  'adana': landmark('adana', 37.0000, 35.3213),
-  'gaziantep': landmark('gaziantep', 37.0662, 37.3833),
-  'kayseri': landmark('kayseri', 38.7312, 35.4787),
-  'trabzon': landmark('trabzon', 41.0027, 39.7168),
-  'mersin': landmark('mersin', 36.8121, 34.6415),
-  'eskisehir': landmark('eskisehir', 39.7767, 30.5206),
-  'sanliurfa': landmark('sanliurfa', 37.1591, 38.7969),
-  'diyarbakir': landmark('diyarbakir', 37.9144, 40.2306),
-};
-const LANDMARK_MATCH_RADIUS_KM = 60;
-
-// Haversine mesafesi (km) — konum tabanlı arama semt adı döndürdüğünde
-// (örn. "Ankara" yerine "Ulus") en yakın bilinen şehri bulmak için.
-function distanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function normalizeCity(name) {
-  return (name || '')
-    .replace(/İ/g, 'i').replace(/I/g, 'i').replace(/ı/g, 'i')
-    .replace(/Ş/g, 's').replace(/ş/g, 's')
-    .replace(/Ğ/g, 'g').replace(/ğ/g, 'g')
-    .replace(/Ü/g, 'u').replace(/ü/g, 'u')
-    .replace(/Ö/g, 'o').replace(/ö/g, 'o')
-    .replace(/Ç/g, 'c').replace(/ç/g, 'c')
-    .toLowerCase()
-    .trim();
-}
-
 // ---------- DOM references ----------
 const el = {
   cityInput: document.getElementById('cityInput'),
@@ -201,31 +142,6 @@ function flagUrl(countryCode) {
 }
 
 // ============================================================
-// Hero background photo (landmark or weather gradient fallback)
-// ============================================================
-// Eşleşen landmark URL'sini döner, yoksa null — DOM'a burada dokunmaz.
-function findLandmarkPhoto(cityName, lat, lon) {
-  let match = LANDMARKS[normalizeCity(cityName)];
-
-  // Konum bazlı aramalarda OWM genelde semt adı döndürür (ör. "Ulus"),
-  // bu yüzden tam isim eşleşmezse en yakın bilinen şehri koordinattan bul.
-  if (!match && typeof lat === 'number' && typeof lon === 'number') {
-    let closest = null;
-    let closestDist = Infinity;
-    Object.values(LANDMARKS).forEach((landmark) => {
-      const d = distanceKm(lat, lon, landmark.lat, landmark.lon);
-      if (d < closestDist) {
-        closestDist = d;
-        closest = landmark;
-      }
-    });
-    if (closest && closestDist <= LANDMARK_MATCH_RADIUS_KM) match = closest;
-  }
-
-  return match;
-}
-
-// ============================================================
 // Moon phase
 // ============================================================
 function getMoonPhaseFraction(date) {
@@ -273,14 +189,6 @@ function resizeFxCanvas() {
 }
 window.addEventListener('resize', resizeFxCanvas);
 resizeFxCanvas();
-
-// Mobil <-> masaüstü kırılım noktasını geçince (pencere boyutu, ekran döndürme)
-// arka planı doğru mod (cover / contain+blur) ile yeniden uygula.
-window.addEventListener('resize', debounce(() => {
-  if (state.bgWeatherId != null) {
-    applyBackground(state.bgWeatherId, state.bgIcon, state.bgPhoto);
-  }
-}, 250));
 
 function initRain() {
   fxParticles = Array.from({ length: 110 }, () => ({
@@ -643,27 +551,10 @@ function weatherGradient(weatherId, icon) {
   return isNight ? 'var(--grad-night)' : 'var(--grad-clouds)';
 }
 
-// Dar (mobil/dikey) ekranlarda yatay fotoğrafları "cover" ile kırpmak konuyu
-// kadraj dışına atıyordu. Masaüstünde (geniş) temiz "cover" kullanılırken,
-// dar ekranlarda fotoğrafın TAMAMI ("contain") gösteriliyor, kenarlarda kalan
-// boşluk aynı fotoğrafın bulanık kopyasıyla dolduruluyor.
-const MOBILE_BREAKPOINT_PX = 700;
-
-function applyBackground(weatherId, icon, photo) {
-  const grad = weatherGradient(weatherId, icon);
-  const isNarrow = window.innerWidth < MOBILE_BREAKPOINT_PX;
-
-  if (photo) {
-    const url = isNarrow ? photo.mobileUrl : photo.url;
-    const scrim = 'linear-gradient(180deg, rgba(6,9,14,0.15) 0%, rgba(6,9,14,0.4) 60%, rgba(6,9,14,0.82) 100%)';
-    document.body.style.backgroundImage = `${scrim}, url("${url}")`;
-    document.body.style.backgroundSize = '100% 100%, cover';
-    document.body.style.backgroundPosition = '0 0, center';
-  } else {
-    document.body.style.backgroundImage = grad;
-    document.body.style.backgroundSize = 'cover';
-    document.body.style.backgroundPosition = 'center';
-  }
+function applyBackground(weatherId, icon) {
+  document.body.style.backgroundImage = weatherGradient(weatherId, icon);
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
 }
 
 // ============================================================
@@ -701,11 +592,7 @@ function renderCurrent(data) {
   el.miniCityName.textContent = data.name;
   el.miniTemp.textContent = `${fmtTemp(data.main.temp)}°`;
 
-  const photo = findLandmarkPhoto(data.name, data.coord.lat, data.coord.lon);
-  state.bgWeatherId = data.weather[0].id;
-  state.bgIcon = icon;
-  state.bgPhoto = photo;
-  applyBackground(data.weather[0].id, icon, photo);
+  applyBackground(data.weather[0].id, icon);
   setWeatherFx(data.weather[0].id, icon);
   startClock(data.timezone);
   renderMoonPhase();
